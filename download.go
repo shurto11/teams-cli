@@ -116,7 +116,13 @@ func (s *AppState) downloadServerRelative(ctx context.Context, host, siteURL, se
 	if err != nil {
 		return "", err
 	}
+	return s.downloadServerRelativeWithToken(ctx, token, siteURL, serverRelative, s.resolveDownloadDir(), name)
+}
 
+// downloadServerRelativeWithToken downloads a single file using an already-minted
+// SharePoint token into destDir. Reusing the token avoids re-minting (and rotating
+// the refresh token) for every file when downloading a whole folder.
+func (s *AppState) downloadServerRelativeWithToken(ctx context.Context, token, siteURL, serverRelative, destDir, name string) (string, error) {
 	downloadURL := strings.TrimRight(siteURL, "/") + "/_layouts/15/download.aspx?SourceUrl=" + url.QueryEscape(serverRelative)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
 	if err != nil {
@@ -135,7 +141,7 @@ func (s *AppState) downloadServerRelative(ctx context.Context, host, siteURL, se
 		return "", fmt.Errorf("SharePoint returned %s: %s", resp.Status, strings.TrimSpace(string(body)))
 	}
 
-	if err := os.MkdirAll(s.resolveDownloadDir(), 0o755); err != nil {
+	if err := os.MkdirAll(destDir, 0o755); err != nil {
 		return "", fmt.Errorf("unable to create download directory: %v", err)
 	}
 
@@ -143,7 +149,7 @@ func (s *AppState) downloadServerRelative(ctx context.Context, host, siteURL, se
 	if safeName == "" {
 		safeName = sanitizeFileName(filepath.Base(serverRelative))
 	}
-	destPath := uniquePath(filepath.Join(s.resolveDownloadDir(), safeName))
+	destPath := uniquePath(filepath.Join(destDir, safeName))
 
 	out, err := os.Create(destPath)
 	if err != nil {

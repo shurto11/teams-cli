@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -27,6 +28,8 @@ type fileBrowserState struct {
 	rootFolder string // channel folder, the browser cannot go above this
 	folder     string // folder currently shown
 	title      string // channel display name
+
+	rowEntries []*spEntry // aligned with list rows; nil for ".."/placeholder rows
 }
 
 // channelFilesContext resolves the SharePoint site and folder backing a channel's
@@ -52,7 +55,11 @@ func (s *AppState) listSharePointFolder(ctx context.Context, host, siteURL, fold
 	if err != nil {
 		return nil, err
 	}
+	return s.listFolderWithToken(ctx, token, siteURL, folder)
+}
 
+// listFolderWithToken lists a folder using an already-minted SharePoint token.
+func (s *AppState) listFolderWithToken(ctx context.Context, token, siteURL, folder string) ([]spEntry, error) {
 	folders, err := s.fetchFolderChildren(ctx, token, siteURL, folder, true)
 	if err != nil {
 		return nil, err
@@ -70,6 +77,41 @@ func (s *AppState) listSharePointFolder(ctx context.Context, host, siteURL, fold
 		return strings.ToLower(entries[i].Name) < strings.ToLower(entries[j].Name)
 	})
 	return entries, nil
+}
+
+// downloadFolderTree recursively downloads every file under folder into destDir,
+// recreating the subfolder structure. progress is called after each file with the
+// running count and the file just saved. Returns the number of files downloaded.
+func (s *AppState) downloadFolderTree(ctx context.Context, token, siteURL, folder, destDir string, count int, progress func(done int, name string)) (int, error) {
+	entries, err := s.listFolderWithToken(ctx, token, siteURL, folder)
+	if err != nil {
+		return count, err
+	}
+
+	for _, entry := range entries {
+		if err := ctx.Err(); err != nil {
+			return count, err
+		}
+
+		if entry.IsFolder {
+			sub := filepath.Join(destDir, sanitizeFileName(entry.Name))
+			count, err = s.downloadFolderTree(ctx, token, siteURL, entry.ServerRelativeURL, sub, count, progress)
+			if err != nil {
+				return count, err
+			}
+			continue
+		}
+
+		if _, err := s.downloadServerRelativeWithToken(ctx, token, siteURL, entry.ServerRelativeURL, destDir, entry.Name); err != nil {
+			return count, fmt.Errorf("%s: %v", entry.Name, err)
+		}
+		count++
+		if progress != nil {
+			progress(count, entry.Name)
+		}
+	}
+
+	return count, nil
 }
 
 func (s *AppState) fetchFolderChildren(ctx context.Context, token, siteURL, folder string, asFolders bool) ([]spEntry, error) {

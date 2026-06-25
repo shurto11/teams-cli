@@ -109,6 +109,16 @@ func (s *AppState) showDownloadProgress(text string) {
 	s.app.SetFocus(view)
 }
 
+// updateDownloadProgress updates the text of an existing progress modal in place,
+// falling back to showing a new one if none is open.
+func (s *AppState) updateDownloadProgress(text string) {
+	if view, ok := s.components[MoDownloadStatus].(*tview.TextView); ok {
+		view.SetText(text)
+		return
+	}
+	s.showDownloadProgress(text)
+}
+
 // showDownloadResult shows a dismissable modal with the outcome of a download.
 func (s *AppState) showDownloadResult(title, detail string) {
 	s.pages.RemovePage(PageDownloadStatus)

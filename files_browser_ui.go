@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -34,6 +35,11 @@ func (s *AppState) openChannelFiles(channelID string) {
 		case tcell.KeyEscape, tcell.KeyLeft, tcell.KeyBackspace, tcell.KeyBackspace2:
 			s.fileBrowserBack()
 			return nil
+		case tcell.KeyRune:
+			if event.Rune() == 'd' {
+				s.fileBrowserDownloadSelection()
+				return nil
+			}
 		}
 		return event
 	})
@@ -84,24 +90,28 @@ func (s *AppState) renderFileBrowserEntries(entries []spEntry, err error) {
 
 	list.Clear()
 	list.SetTitle(s.fileBrowserTitle())
+	fb.rowEntries = nil
 
 	if err != nil {
 		list.AddItem("Failed to list folder", err.Error(), 0, nil)
+		fb.rowEntries = append(fb.rowEntries, nil)
 		return
 	}
 
 	if fb.folder != fb.rootFolder {
-		list.AddItem("[..]", "Go to parent folder", 0, func() { s.fileBrowserUp() })
+		list.AddItem("../", "Go to parent folder", 0, func() { s.fileBrowserUp() })
+		fb.rowEntries = append(fb.rowEntries, nil)
 	}
 
 	if len(entries) == 0 {
 		list.AddItem("(empty)", "No files or folders here.", 0, nil)
+		fb.rowEntries = append(fb.rowEntries, nil)
 	}
 
 	for _, entry := range entries {
 		entry := entry
 		if entry.IsFolder {
-			list.AddItem("[DIR] "+entry.Name, "folder", 0, func() {
+			list.AddItem(entry.Name+"/", "folder  (Enter: open, d: download all)", 0, func() {
 				s.navigateFolder(entry.ServerRelativeURL)
 			})
 		} else {
@@ -109,7 +119,67 @@ func (s *AppState) renderFileBrowserEntries(entries []spEntry, err error) {
 				s.downloadBrowserFile(entry)
 			})
 		}
+		fb.rowEntries = append(fb.rowEntries, &entry)
 	}
+}
+
+// fileBrowserDownloadSelection handles 'd': download the selected file, or the whole
+// folder (recursively) when a folder row is selected.
+func (s *AppState) fileBrowserDownloadSelection() {
+	fb := s.fileBrowser
+	list, ok := s.components[MoFileBrowser].(*tview.List)
+	if fb == nil || !ok {
+		return
+	}
+
+	idx := list.GetCurrentItem()
+	if idx < 0 || idx >= len(fb.rowEntries) || fb.rowEntries[idx] == nil {
+		return
+	}
+
+	entry := *fb.rowEntries[idx]
+	if entry.IsFolder {
+		s.downloadFolder(entry)
+		return
+	}
+	s.downloadBrowserFile(entry)
+}
+
+// downloadFolder downloads every file under the folder, preserving its structure
+// under <downloadDir>/<folderName>/.
+func (s *AppState) downloadFolder(folderEntry spEntry) {
+	fb := s.fileBrowser
+	if fb == nil {
+		return
+	}
+	host, site := fb.host, fb.siteURL
+	destRoot := filepath.Join(s.resolveDownloadDir(), sanitizeFileName(folderEntry.Name))
+
+	s.showDownloadProgress(fmt.Sprintf("Downloading folder\n\n%s", folderEntry.Name))
+	go func() {
+		ctx := s.appContext()
+		token, err := s.sharePointToken(ctx, host)
+		if err != nil {
+			s.app.QueueUpdateDraw(func() { s.showDownloadResult("Folder download failed", err.Error()) })
+			return
+		}
+
+		count, err := s.downloadFolderTree(ctx, token, site, folderEntry.ServerRelativeURL, destRoot, 0, func(done int, name string) {
+			s.app.QueueUpdateDraw(func() {
+				s.updateDownloadProgress(fmt.Sprintf("Downloading folder: %s\n\n%d files saved\n%s", folderEntry.Name, done, name))
+			})
+		})
+
+		s.app.QueueUpdateDraw(func() {
+			if err != nil {
+				s.appLogger().WithError(err).WithField("folder", folderEntry.Name).Warn("folder download failed")
+				s.showDownloadResult("Folder download failed", fmt.Sprintf("%v\n(%d files saved before the error)", err, count))
+				return
+			}
+			s.appLogger().WithFields(map[string]interface{}{"folder": folderEntry.Name, "files": count}).Info("folder downloaded")
+			s.showDownloadResult("Downloaded folder", fmt.Sprintf("%s\n%d files saved to\n%s", folderEntry.Name, count, destRoot))
+		})
+	}()
 }
 
 // fileBrowserBack goes up one folder, or closes the browser at the channel root.

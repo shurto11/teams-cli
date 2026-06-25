@@ -176,6 +176,7 @@ Msgs   Up/Down move   PgUp/Dn page
        f  browse channel files
 
 Files  Up/Down move   Enter open/download
+       d download file or whole folder
        Left/Backspace/Esc up or close
 
 Live   Background refresh disabled
@@ -195,6 +196,7 @@ Msgs   Up/Down move   PgUp/Dn page
        f  browse channel files
 
 Files  Up/Down move   Enter open/download
+       d download file or whole folder
        Left/Backspace/Esc up or close
 
 Live   Selected conversation refreshes every %s
