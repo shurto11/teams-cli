@@ -48,9 +48,24 @@ func (s *AppState) showDownloadPicker(files []teamsFile) {
 	}
 
 	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEscape {
+		switch event.Key() {
+		case tcell.KeyEscape:
 			s.dismissDownloadPicker()
 			return nil
+		case tcell.KeyUp, tcell.KeyDown, tcell.KeyLeft, tcell.KeyRight:
+			return nil // arrow keys disabled; use j/k
+		case tcell.KeyRune:
+			switch event.Rune() {
+			case 'j':
+				return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+			case 'k':
+				return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
+			case 'h':
+				s.dismissDownloadPicker()
+				return nil
+			case 'l':
+				return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
+			}
 		}
 		return event
 	})

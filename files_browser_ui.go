@@ -32,11 +32,23 @@ func (s *AppState) openChannelFiles(channelID string) {
 	list.SetBackgroundColor(tcell.ColorBlack)
 	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
-		case tcell.KeyEscape, tcell.KeyLeft, tcell.KeyBackspace, tcell.KeyBackspace2:
+		case tcell.KeyEscape, tcell.KeyBackspace, tcell.KeyBackspace2:
 			s.fileBrowserBack()
 			return nil
+		case tcell.KeyUp, tcell.KeyDown, tcell.KeyLeft, tcell.KeyRight:
+			return nil // arrow keys disabled; use h/j/k/l
 		case tcell.KeyRune:
-			if event.Rune() == 'd' {
+			switch event.Rune() {
+			case 'j':
+				return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+			case 'k':
+				return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
+			case 'h':
+				s.fileBrowserBack()
+				return nil
+			case 'l':
+				return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
+			case 'd':
 				s.fileBrowserDownloadSelection()
 				return nil
 			}

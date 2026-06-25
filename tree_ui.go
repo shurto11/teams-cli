@@ -166,18 +166,18 @@ func pathExpanded(expandedPaths map[string]struct{}, path string) bool {
 func (s *AppState) keyboardHelpText() string {
 	if !s.liveRefreshEnabled() {
 		return strings.TrimSpace(`
-Tree   Up/Down move   Right/l open
-       Left/h/Esc back   Enter read
+Tree   j/k move   l open
+       h/Esc back   Enter read
        f channel files   Tab msgs
 
-Msgs   Up/Down move   PgUp/Dn page
-       Home/End jump   Left/h/Esc/Tab back
+Msgs   j/k move   PgUp/Dn page
+       Home/End jump   h/Esc/Tab back
        d  download attachment
        f  browse channel files
 
-Files  Up/Down move   Enter open/download
+Files  j/k move   l/Enter open/download
        d download file or whole folder
-       Left/Backspace/Esc up or close
+       h/Backspace/Esc up or close
 
 Live   Background refresh disabled
 
@@ -186,18 +186,18 @@ Live   Background refresh disabled
 	}
 
 	return strings.TrimSpace(fmt.Sprintf(`
-Tree   Up/Down move   Right/l open
-       Left/h/Esc back   Enter read
+Tree   j/k move   l open
+       h/Esc back   Enter read
        f channel files   Tab msgs
 
-Msgs   Up/Down move   PgUp/Dn page
-       Home/End jump   Left/h/Esc/Tab back
+Msgs   j/k move   PgUp/Dn page
+       Home/End jump   h/Esc/Tab back
        d  download attachment
        f  browse channel files
 
-Files  Up/Down move   Enter open/download
+Files  j/k move   l/Enter open/download
        d download file or whole folder
-       Left/Backspace/Esc up or close
+       h/Backspace/Esc up or close
 
 Live   Selected conversation refreshes every %s
        Conversation tree refreshes every %s
@@ -209,9 +209,9 @@ Live   Selected conversation refreshes every %s
 func helpBarText(focusedComponent string) string {
 	switch focusedComponent {
 	case ViChat:
-		return "[::b]Msgs[::-] Up/Down  PgUp/Dn page  d download  f files  Left/Esc/Tab back  ?  q"
+		return "[::b]Msgs[::-] j/k move  PgUp/Dn page  d download  f files  h/Esc/Tab back  ?  q"
 	default:
-		return "[::b]Tree[::-] Up/Down  Right open  Left/Esc back  Enter read  f files  Tab msgs  ?  q"
+		return "[::b]Tree[::-] j/k move  l open  h back  Enter read  f files  Tab msgs  ?  q"
 	}
 }
 
@@ -332,12 +332,8 @@ func (s *AppState) treeKeyHandler(treeView *tview.TreeView) func(event *tcell.Ev
 	return func(event *tcell.EventKey) *tcell.EventKey {
 		current := treeView.GetCurrentNode()
 		switch event.Key() {
-		case tcell.KeyRight:
-			s.handleTreeRight(treeView, current)
-			return nil
-		case tcell.KeyLeft:
-			s.handleTreeLeft(treeView, current)
-			return nil
+		case tcell.KeyUp, tcell.KeyDown, tcell.KeyLeft, tcell.KeyRight:
+			return nil // arrow keys disabled; use h/j/k/l
 		case tcell.KeyEnter:
 			s.activateTreeNode(current)
 			return nil
@@ -345,6 +341,10 @@ func (s *AppState) treeKeyHandler(treeView *tview.TreeView) func(event *tcell.Ev
 
 		if event.Key() == tcell.KeyRune {
 			switch event.Rune() {
+			case 'j':
+				return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+			case 'k':
+				return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
 			case 'h':
 				s.handleTreeLeft(treeView, current)
 				return nil
@@ -374,13 +374,19 @@ func (s *AppState) openChannelFilesForNode(node *tview.TreeNode) {
 func (s *AppState) chatKeyHandler() func(event *tcell.EventKey) *tcell.EventKey {
 	return func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
-		case tcell.KeyTab, tcell.KeyBacktab, tcell.KeyEscape, tcell.KeyLeft:
+		case tcell.KeyTab, tcell.KeyBacktab, tcell.KeyEscape:
 			s.focusComponent(TrChat)
 			return nil
+		case tcell.KeyUp, tcell.KeyDown, tcell.KeyLeft, tcell.KeyRight:
+			return nil // arrow keys disabled; use h/j/k/l
 		}
 
 		if event.Key() == tcell.KeyRune {
 			switch event.Rune() {
+			case 'j':
+				return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+			case 'k':
+				return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
 			case 'h':
 				s.focusComponent(TrChat)
 				return nil
