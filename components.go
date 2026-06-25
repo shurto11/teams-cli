@@ -18,6 +18,7 @@ const (
 	MoHelp           = "moHelp"
 	MoDownloadStatus = "moDownloadStatus"
 	MoDownloadPicker = "moDownloadPicker"
+	MoFileBrowser    = "moFileBrowser"
 )
 
 // Pages
@@ -29,4 +30,5 @@ const (
 	PageHelp           = "pageHelp"
 	PageDownloadStatus = "pageDownloadStatus"
 	PageDownloadPicker = "pageDownloadPicker"
+	PageFileBrowser    = "pageFileBrowser"
 )

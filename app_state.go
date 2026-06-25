@@ -31,6 +31,7 @@ type AppState struct {
 	downloadDir                  string
 	tokenDir                     string
 	renderedMessages             []csa.ChatMessage
+	fileBrowser                  *fileBrowserState
 	liveRefreshDisabled          bool
 	liveMessageRefreshEvery      time.Duration
 	liveConversationRefreshEvery time.Duration

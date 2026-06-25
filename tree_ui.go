@@ -168,11 +168,15 @@ func (s *AppState) keyboardHelpText() string {
 		return strings.TrimSpace(`
 Tree   Up/Down move   Right/l open
        Left/h/Esc back   Enter read
-       Tab msgs
+       f channel files   Tab msgs
 
 Msgs   Up/Down move   PgUp/Dn page
        Home/End jump   Left/h/Esc/Tab back
        d  download attachment
+       f  browse channel files
+
+Files  Up/Down move   Enter open/download
+       Left/Backspace/Esc up or close
 
 Live   Background refresh disabled
 
@@ -183,11 +187,15 @@ Live   Background refresh disabled
 	return strings.TrimSpace(fmt.Sprintf(`
 Tree   Up/Down move   Right/l open
        Left/h/Esc back   Enter read
-       Tab msgs
+       f channel files   Tab msgs
 
 Msgs   Up/Down move   PgUp/Dn page
        Home/End jump   Left/h/Esc/Tab back
        d  download attachment
+       f  browse channel files
+
+Files  Up/Down move   Enter open/download
+       Left/Backspace/Esc up or close
 
 Live   Selected conversation refreshes every %s
        Conversation tree refreshes every %s
@@ -199,9 +207,9 @@ Live   Selected conversation refreshes every %s
 func helpBarText(focusedComponent string) string {
 	switch focusedComponent {
 	case ViChat:
-		return "[::b]Msgs[::-] Up/Down  PgUp/Dn page  Home/End jump  d download  Left/Esc/Tab back  ?  q"
+		return "[::b]Msgs[::-] Up/Down  PgUp/Dn page  d download  f files  Left/Esc/Tab back  ?  q"
 	default:
-		return "[::b]Tree[::-] Up/Down  Right open  Left/Esc back  Enter read  Tab msgs  ?  q"
+		return "[::b]Tree[::-] Up/Down  Right open  Left/Esc back  Enter read  f files  Tab msgs  ?  q"
 	}
 }
 
@@ -341,10 +349,23 @@ func (s *AppState) treeKeyHandler(treeView *tview.TreeView) func(event *tcell.Ev
 			case 'l':
 				s.handleTreeRight(treeView, current)
 				return nil
+			case 'f':
+				s.openChannelFilesForNode(current)
+				return nil
 			}
 		}
 
 		return event
+	}
+}
+
+// openChannelFilesForNode opens the Files tab browser for a selected channel node.
+func (s *AppState) openChannelFilesForNode(node *tview.TreeNode) {
+	if node == nil {
+		return
+	}
+	if target, ok := node.GetReference().(ConversationTarget); ok {
+		s.openChannelFiles(target.ID)
 	}
 }
 
@@ -363,6 +384,11 @@ func (s *AppState) chatKeyHandler() func(event *tcell.EventKey) *tcell.EventKey 
 				return nil
 			case 'd':
 				s.handleDownloadRequest()
+				return nil
+			case 'f':
+				if target, ok, _, _ := s.currentConversationSnapshot(); ok {
+					s.openChannelFiles(target.ID)
+				}
 				return nil
 			}
 		}

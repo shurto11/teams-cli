@@ -101,12 +101,23 @@ func (s *AppState) downloadAttachment(ctx context.Context, file teamsFile) (stri
 		site = parsed.Scheme + "://" + parsed.Host
 	}
 
-	token, err := s.sharePointToken(ctx, parsed.Host)
+	name := file.Name
+	if name == "" {
+		name = filepath.Base(serverRelative)
+	}
+
+	return s.downloadServerRelative(ctx, parsed.Host, site, serverRelative, name)
+}
+
+// downloadServerRelative fetches a SharePoint file identified by its server-relative
+// URL (e.g. /sites/foo/Shared Documents/bar.pdf) and saves it to the download dir.
+func (s *AppState) downloadServerRelative(ctx context.Context, host, siteURL, serverRelative, name string) (string, error) {
+	token, err := s.sharePointToken(ctx, host)
 	if err != nil {
 		return "", err
 	}
 
-	downloadURL := site + "/_layouts/15/download.aspx?SourceUrl=" + url.QueryEscape(serverRelative)
+	downloadURL := strings.TrimRight(siteURL, "/") + "/_layouts/15/download.aspx?SourceUrl=" + url.QueryEscape(serverRelative)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
 	if err != nil {
 		return "", err
@@ -128,11 +139,11 @@ func (s *AppState) downloadAttachment(ctx context.Context, file teamsFile) (stri
 		return "", fmt.Errorf("unable to create download directory: %v", err)
 	}
 
-	name := sanitizeFileName(file.Name)
-	if name == "" {
-		name = sanitizeFileName(filepath.Base(serverRelative))
+	safeName := sanitizeFileName(name)
+	if safeName == "" {
+		safeName = sanitizeFileName(filepath.Base(serverRelative))
 	}
-	destPath := uniquePath(filepath.Join(s.resolveDownloadDir(), name))
+	destPath := uniquePath(filepath.Join(s.resolveDownloadDir(), safeName))
 
 	out, err := os.Create(destPath)
 	if err != nil {
