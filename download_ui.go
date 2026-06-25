@@ -138,6 +138,15 @@ func (s *AppState) downloadOverlayVisible() bool {
 }
 
 func (s *AppState) restoreFocusAfterOverlay() {
+	// If the file browser is still open underneath, return focus to it.
+	if s.pages.HasPage(PageFileBrowser) {
+		if list, ok := s.components[MoFileBrowser]; ok {
+			s.pages.SendToFront(PageFileBrowser)
+			s.app.SetFocus(list)
+			return
+		}
+	}
+
 	target := s.previousFocus
 	if target == "" {
 		target = ViChat
