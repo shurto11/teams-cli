@@ -78,6 +78,8 @@ func main() {
 		liveRefreshDisabled:          !options.LiveRefresh,
 		liveMessageRefreshEvery:      options.RefreshMessagesInterval,
 		liveConversationRefreshEvery: options.RefreshConversationInterval,
+		downloadDir:                  options.DownloadDir,
+		tokenDir:                     options.TokenDir,
 	}
 	state.initRuntime(rootCtx)
 	defer state.requestStop()

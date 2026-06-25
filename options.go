@@ -14,6 +14,7 @@ type AppOptions struct {
 	MessageLimit                int
 	LogLevel                    logrus.Level
 	TokenDir                    string
+	DownloadDir                 string
 	LiveRefresh                 bool
 	RefreshMessagesInterval     time.Duration
 	RefreshConversationInterval time.Duration
@@ -87,6 +88,17 @@ func parseAppOptions(args []string) (AppOptions, error) {
 				return options, fmt.Errorf("invalid token directory %q", raw)
 			}
 			options.TokenDir = raw
+			idx = nextIdx
+		case arg == "--download-dir" || strings.HasPrefix(arg, "--download-dir="):
+			raw, nextIdx, err := optionValue(args, idx, "--download-dir")
+			if err != nil {
+				return options, err
+			}
+			raw = strings.TrimSpace(raw)
+			if raw == "" {
+				return options, fmt.Errorf("invalid download directory %q", raw)
+			}
+			options.DownloadDir = raw
 			idx = nextIdx
 		case arg == "--refresh-messages" || strings.HasPrefix(arg, "--refresh-messages="):
 			raw, nextIdx, err := optionValue(args, idx, "--refresh-messages")
@@ -192,6 +204,7 @@ Options:
       --msg <count>           Limit each conversation to the most recent N messages
       --log-level <level>     Set log level (debug, info, warn, error)
       --token-dir <dir>       Read token-teams.jwt, token-skype.jwt, and token-chatsvcagg.jwt from a custom directory
+      --download-dir <dir>    Directory to save downloaded attachments (default ~/ssd/tui/teams-cli/downloads)
       --refresh-messages <d>  Poll interval for the selected conversation (seconds or Go duration, default %s)
       --refresh-tree <d>      Poll interval for the conversation tree (seconds or Go duration, default %s)
       --no-live               Disable background refresh polling

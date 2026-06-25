@@ -1,6 +1,8 @@
 .idea
 .DS_Store
 teams-cli
+teams-cli-dev
 dist/
+downloads/
 token-*.jwt
 *.jwt

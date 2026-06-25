@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fossteams/teams-api/pkg/csa"
 	"github.com/rivo/tview"
 	"github.com/sirupsen/logrus"
 )
@@ -27,6 +28,9 @@ type AppState struct {
 	previousFocus                string
 	chatPaneFocusable            bool
 	httpClient                   *http.Client
+	downloadDir                  string
+	tokenDir                     string
+	renderedMessages             []csa.ChatMessage
 	liveRefreshDisabled          bool
 	liveMessageRefreshEvery      time.Duration
 	liveConversationRefreshEvery time.Duration
@@ -207,6 +211,25 @@ func (s *AppState) rememberConversationSync(target ConversationTarget, signature
 	s.currentConversation = target
 	s.currentMessagesSignature = signature
 	s.lastMessageSyncAt = syncedAt
+}
+
+func (s *AppState) setRenderedMessages(messages []csa.ChatMessage) {
+	s.stateMu.Lock()
+	defer s.stateMu.Unlock()
+
+	s.renderedMessages = messages
+}
+
+// messageAt returns the message rendered at the given list row, if any.
+func (s *AppState) messageAt(index int) (csa.ChatMessage, bool) {
+	s.stateMu.RLock()
+	defer s.stateMu.RUnlock()
+
+	if index < 0 || index >= len(s.renderedMessages) {
+		return csa.ChatMessage{}, false
+	}
+
+	return s.renderedMessages[index], true
 }
 
 func (s *AppState) liveRefreshEnabled() bool {

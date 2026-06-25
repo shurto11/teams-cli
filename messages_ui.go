@@ -62,12 +62,15 @@ func (s *AppState) renderConversationMessages(target ConversationTarget, message
 		SetTitleAlign(tview.AlignCenter)
 	s.chatPaneFocusable = true
 
+	rendered := make([]csa.ChatMessage, 0, len(messages))
 	for _, message := range messages {
 		if message.ImDisplayName == "" {
 			continue
 		}
 		chatList.AddItem(textMessage(message.Content), message.ImDisplayName, 0, nil)
+		rendered = append(rendered, message)
 	}
+	s.setRenderedMessages(rendered)
 
 	if chatList.GetItemCount() == 0 {
 		chatList.AddItem("No recent messages found", fmt.Sprintf("Loaded the latest %d messages for this conversation.", s.messageLimit), 0, nil)
@@ -107,6 +110,7 @@ func (s *AppState) renderConversationLoadError(target ConversationTarget, err er
 		return
 	}
 
+	s.setRenderedMessages(nil)
 	mainText, secondaryText := conversationLoadErrorText(err)
 	chatList.Clear()
 	chatList.SetTitle(conversationPaneTitle(target, time.Time{}, "load failed")).

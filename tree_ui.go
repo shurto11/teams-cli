@@ -172,6 +172,7 @@ Tree   Up/Down move   Right/l open
 
 Msgs   Up/Down move   PgUp/Dn page
        Home/End jump   Left/h/Esc/Tab back
+       d  download attachment
 
 Live   Background refresh disabled
 
@@ -186,6 +187,7 @@ Tree   Up/Down move   Right/l open
 
 Msgs   Up/Down move   PgUp/Dn page
        Home/End jump   Left/h/Esc/Tab back
+       d  download attachment
 
 Live   Selected conversation refreshes every %s
        Conversation tree refreshes every %s
@@ -197,7 +199,7 @@ Live   Selected conversation refreshes every %s
 func helpBarText(focusedComponent string) string {
 	switch focusedComponent {
 	case ViChat:
-		return "[::b]Msgs[::-] Up/Down  PgUp/Dn page  Home/End jump  Left/Esc/Tab back  ?  q"
+		return "[::b]Msgs[::-] Up/Down  PgUp/Dn page  Home/End jump  d download  Left/Esc/Tab back  ?  q"
 	default:
 		return "[::b]Tree[::-] Up/Down  Right open  Left/Esc back  Enter read  Tab msgs  ?  q"
 	}
@@ -226,6 +228,15 @@ func (s *AppState) globalKeyHandler(event *tcell.EventKey) *tcell.EventKey {
 
 	if s.helpVisible() && event.Key() == tcell.KeyEscape {
 		s.hideHelp()
+		return nil
+	}
+
+	if s.downloadOverlayVisible() && event.Key() == tcell.KeyEscape {
+		if name, _ := s.pages.GetFrontPage(); name == PageDownloadPicker {
+			s.dismissDownloadPicker()
+		} else {
+			s.dismissDownloadStatus()
+		}
 		return nil
 	}
 
@@ -345,9 +356,15 @@ func (s *AppState) chatKeyHandler() func(event *tcell.EventKey) *tcell.EventKey 
 			return nil
 		}
 
-		if event.Key() == tcell.KeyRune && event.Rune() == 'h' {
-			s.focusComponent(TrChat)
-			return nil
+		if event.Key() == tcell.KeyRune {
+			switch event.Rune() {
+			case 'h':
+				s.focusComponent(TrChat)
+				return nil
+			case 'd':
+				s.handleDownloadRequest()
+				return nil
+			}
 		}
 
 		return event
@@ -486,6 +503,7 @@ func (s *AppState) showConversationHint(node *tview.TreeNode) {
 	atomic.StoreUint64(&s.activeLoadSeq, 0)
 	s.chatPaneFocusable = false
 	s.clearCurrentConversation()
+	s.setRenderedMessages(nil)
 
 	mainText, secondaryText := conversationHintText(node)
 	chatList := s.components[ViChat].(*tview.List)

@@ -14,15 +14,19 @@ const (
 // Generic Views
 
 const (
-	ViChat = "viChat"
-	MoHelp = "moHelp"
+	ViChat           = "viChat"
+	MoHelp           = "moHelp"
+	MoDownloadStatus = "moDownloadStatus"
+	MoDownloadPicker = "moDownloadPicker"
 )
 
 // Pages
 
 const (
-	PageMain  = "pageMain"
-	PageLogin = "pageLogin"
-	PageError = "pageError"
-	PageHelp  = "pageHelp"
+	PageMain           = "pageMain"
+	PageLogin          = "pageLogin"
+	PageError          = "pageError"
+	PageHelp           = "pageHelp"
+	PageDownloadStatus = "pageDownloadStatus"
+	PageDownloadPicker = "pageDownloadPicker"
 )
