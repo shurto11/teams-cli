@@ -6,3 +6,7 @@ dist/
 downloads/
 token-*.jwt
 *.jwt
+teams-token/
+teams-cli_v*.tar.gz
+teams-cli_v*_checksums.txt
+design.md
