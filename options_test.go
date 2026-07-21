@@ -23,6 +23,9 @@ func TestParseAppOptionsDefaults(t *testing.T) {
 	if !options.LiveRefresh {
 		t.Fatal("expected live refresh to be enabled by default")
 	}
+	if !options.RefreshTokens {
+		t.Fatal("expected token refresh to be enabled by default")
+	}
 	if options.RefreshMessagesInterval != defaultLiveMessageRefreshInterval {
 		t.Fatalf("expected default message refresh interval %s, got %s", defaultLiveMessageRefreshInterval, options.RefreshMessagesInterval)
 	}
@@ -39,10 +42,15 @@ func TestParseAppOptionsExtendedFlags(t *testing.T) {
 		"--refresh-messages", "10",
 		"--refresh-tree=45s",
 		"--no-live",
+		"--no-refresh",
 		"doctor",
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if options.RefreshTokens {
+		t.Fatal("expected token refresh to be disabled")
 	}
 
 	if options.MessageLimit != 25 {
@@ -183,7 +191,7 @@ func TestParseAppOptionsRejectsUnknownArgument(t *testing.T) {
 func TestUsageTextIncludesDiagnosticsAndRefreshFlags(t *testing.T) {
 	text := usageText("teams-cli")
 
-	for _, needle := range []string{"--doctor", "--no-live", "--refresh-messages", "--refresh-tree"} {
+	for _, needle := range []string{"--doctor", "--no-live", "--no-refresh", "--refresh-messages", "--refresh-tree"} {
 		if !strings.Contains(text, needle) {
 			t.Fatalf("expected usage text to mention %s", needle)
 		}

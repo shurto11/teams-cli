@@ -15,6 +15,7 @@ type AppOptions struct {
 	LogLevel                    logrus.Level
 	TokenDir                    string
 	DownloadDir                 string
+	RefreshTokens               bool
 	LiveRefresh                 bool
 	RefreshMessagesInterval     time.Duration
 	RefreshConversationInterval time.Duration
@@ -27,6 +28,7 @@ func defaultAppOptions() AppOptions {
 	return AppOptions{
 		MessageLimit:                defaultMessageLimit,
 		LogLevel:                    logrus.InfoLevel,
+		RefreshTokens:               true,
 		LiveRefresh:                 true,
 		RefreshMessagesInterval:     defaultLiveMessageRefreshInterval,
 		RefreshConversationInterval: defaultLiveConversationRefreshInterval,
@@ -50,6 +52,8 @@ func parseAppOptions(args []string) (AppOptions, error) {
 			options.LogLevel = logrus.DebugLevel
 		case arg == "--no-live":
 			options.LiveRefresh = false
+		case arg == "--no-refresh":
+			options.RefreshTokens = false
 		case strings.HasPrefix(arg, "msg="):
 			limit, err := parseMessageLimit(strings.TrimPrefix(arg, "msg="))
 			if err != nil {
@@ -208,6 +212,7 @@ Options:
       --refresh-messages <d>  Poll interval for the selected conversation (seconds or Go duration, default %s)
       --refresh-tree <d>      Poll interval for the conversation tree (seconds or Go duration, default %s)
       --no-live               Disable background refresh polling
+      --no-refresh            Skip refreshing auth tokens (teams-refresh.sh) at startup
       --doctor                Run diagnostics instead of launching the TUI
 
 Examples:

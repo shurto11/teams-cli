@@ -60,6 +60,9 @@ func main() {
 		"debug_enabled": options.LogLevel == logrus.DebugLevel,
 		"process_id":    os.Getpid(),
 	}).Info("starting teams-cli")
+	if options.RefreshTokens {
+		refreshTokensAtStartup(logger, options.TokenDir)
+	}
 	if err := applyTokenDirToEnv(options.TokenDir); err != nil {
 		logger.WithError(err).WithField("token_dir", options.TokenDir).Error("token setup failed")
 		fmt.Fprintf(os.Stderr, "token setup failed: %v\nSee log: %s\n", err, logSetup.Path)
